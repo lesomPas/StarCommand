@@ -1,0 +1,362 @@
+# create by lesomras on 2025-12-13
+
+from abc import ABC, abstractmethod
+from pprint import pformat
+from typing import Union, Optional
+
+from ..core.dict_checking import is_value, list_of, matching
+from ..core.exceptions import UnsupportedArgument, MissingArgument, MalformedArgument
+
+priority = {
+    "translate": 4,
+    "text": 3,
+    "score": 2,
+    "selector": 1,
+    None: 0
+}
+
+class TextComponent(ABC):
+    """所有文本组件的基类"""
+
+    def with_id(self) -> str:
+        """返回组件的唯一标识符与信息"""
+        return f"{id(self)}::{str(self)}"
+
+    @classmethod
+    @abstractmethod
+    def from_dictionary(cls, dictionary: dict) -> "TextComponent":
+        """实现由字典到文本组件的转换"""
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def build_dictionary(*args, **kwargs) -> dict:
+        """实现由参数到字典的转换"""
+        pass
+
+    @abstractmethod
+    def to_dictionary(self) -> dict:
+        """实现由该文本组件到字典的转换"""
+        pass
+
+    @abstractmethod
+    def __str__(self) -> str:
+        pass
+
+    @abstractmethod
+    def __repr__(self) -> str:
+        pass
+
+
+class Rawtext(TextComponent):
+    """实现Minecraft BE中rawtext文本组件的模式, 本质上是个容器"""
+    def __init__(self, sequence: Optional[list[TextComponent]] = None) -> None:
+        """实现由TextComponent列表到Rawtext的转换"""
+        sequence = sequence if sequence is not None else []
+        if not list_of(sequence, TextComponent):
+            raise UnsupportedArgument("Sequence must be None or a list of TextComponents")
+        self._data = sequence
+
+    @classmethod
+    def from_dictionary(cls, dictionary: dict) -> "Rawtext":
+        matching(dictionary, pattern = {
+            "rawtext": lambda data_value, key: isinstance(data_value, list)
+        })
+        sequence = rawtext_lexer(dictionary["rawtext"])
+        return cls(sequence)
+
+    @staticmethod
+    def build_dictionary() -> dict:
+        return {}
+
+    def to_dictionary(self) -> dict:
+        return {
+            "rawtext": [i.to_dictionary() for i in self._data]
+        }
+
+    def add(self, *args) -> "Rawtext":
+        for obj in args:
+            if not isinstance(obj, TextComponent):
+                raise TypeError("arguments must be subclass of TextComponent")
+            self._data.append(obj)
+        return self
+
+    def add_sequence(self, sequence: list[TextComponent]) -> "Rawtext":
+        return self.add(*sequence)
+
+    def get_data(self) -> list[TextComponent]:
+        return self._data.copy()
+
+    def translate(self, translate: str) -> 'TranslateBuilder':
+        if not isinstance(translate, str):
+            raise UnsupportedArgument("build failed")
+
+        return TranslateBuilder(self, translate)
+
+    def __str__(self) -> str:
+        return pformat(self._data)
+
+    def __repr__(self) -> str:
+        return f"-rawtext::{str(self)}"
+
+class Text(TextComponent):
+    """实现Minecraft BE中text组件的模式"""
+
+    def __init__(self, content: str) -> None:
+        """实现由参数到Text的转换"""
+        if not isinstance(content, str):
+            raise UnsupportedArgument("Content must be a string")
+
+        self.content = content
+
+    @classmethod
+    def from_dictionary(cls, dictionary: dict) -> "Text":
+        matching(dictionary, pattern = {
+            "text": str
+        })
+        return cls(dictionary["text"])
+
+    @staticmethod
+    def build_dictionary(content: str) -> dict:
+        if not isinstance(content, str):
+            raise UnsupportedArgument("Content must be a string")
+
+        return Text._to_dictionary(content)
+
+    def to_dictionary(self) -> dict:
+        return self._to_dictionary(self.content)
+
+    @staticmethod
+    def _to_dictionary(content: str) -> dict:
+        return {
+            "text": content
+        }
+
+    def __str__(self) -> str:
+        return self.content
+
+    def __repr__(self) -> str:
+        return f"-text::{str(self)}"
+
+
+class Score(TextComponent):
+    """实现Minecraft BE中score文本组件的模式"""
+
+    def __init__(self, name: str, objective: str) -> None:
+        """实现由参数到Score的转换"""
+        if not (isinstance(name, str) and isinstance(objective, str)):
+            raise UnsupportedArgument("Name and Objective must be a string")
+
+        self.name = name
+        self.objective = objective
+
+    @classmethod
+    def from_dictionary(cls, dictionary: dict) -> "Score":
+        matching(dictionary, pattern = {
+            "score": {
+                "name": str,
+                "objective": str
+            }
+        })
+        return cls(dictionary["score"]["name"], dictionary["score"]["objective"])
+
+    @staticmethod
+    def build_dictionary(name: str, objective: str) -> dict:
+        if not (isinstance(name, str) and isinstance(objective, str)):
+            raise UnsupportedArgument("Name and Objective must be a string")
+
+        return Score._to_dictionary(name, objective)
+
+    def to_dictionary(self) -> dict:
+        return self._to_dictionary(self.name, self.objective)
+
+    @staticmethod
+    def _to_dictionary(name, objective) -> dict:
+        return {
+            "score": {
+                "name": name,
+                "objective": objective
+            }
+        }
+
+    def __str__(self) -> str:
+        return f"{self.name} >> {self.objective}"
+
+    def __repr__(self) -> str:
+        return f"-score::{str(self)}"
+
+
+class Selector(TextComponent):
+    """实现Minecraft BE中selector文本组件的模式"""
+
+    def __init__(self, content: str) -> None:
+        """实现由参数到Selector的转换"""
+        if not isinstance(content, str):
+            raise UnsupportedArgument("Content must be a string")
+
+        self.content = content
+
+    @classmethod
+    def from_dictionary(cls, dictionary: dict) -> "Selector":
+        matching(dictionary, pattern = {
+            "selector": str
+        })
+        return cls(dictionary["selector"])
+
+    @staticmethod
+    def build_dictionary(content: str) -> dict:
+        if not isinstance(content, str):
+            raise UnsupportedArgument("Content must be a string")
+
+        return Selector._to_dictionary(content)
+
+    def to_dictionary(self) -> dict:
+        return self._to_dictionary(self.content)
+
+    @staticmethod
+    def _to_dictionary(content: str) -> dict:
+        return {
+            "selector": content
+        }
+
+    def __str__(self) -> str:
+        return self.content
+
+    def __repr__(self) -> str:
+        return f"-selector::{str(self)}"
+
+
+class Translate(TextComponent):
+    def __init__(self, translate: str, with_content: Optional[Rawtext] = None, string_sequence: Optional[list[str]] = None) -> None:
+        if not isinstance(translate, str):
+            raise UnsupportedArgument("'translate' must be a string")
+        self.translate = translate
+        self.with_content = None
+        self.string_sequence = None
+
+        if with_content is not None:
+            if not (isinstance(with_content, Rawtext)):
+                raise UnsupportedArgument("'with_content' must be a Rawtext")
+            self.with_content = with_content
+            return
+
+        if string_sequence is not None:
+            if not list_of(string_sequence, str):
+                raise UnsupportedArgument("'string_sequence' must be list of strings")
+            self.string_sequence = string_sequence
+
+    def is_prime_translate(self) -> bool:
+        return self.with_content is None and self.string_sequence is None
+
+    def is_rawtext_translate(self) -> bool:
+        return self.with_content is not None
+
+    def is_string_translate(self) -> bool:
+        return self.string_sequence is not None
+
+    @staticmethod
+    def from_dictionary(dictionary: dict) -> "Translate":
+        if len(dictionary) > 2:
+            raise ValueError("Dictionary contains extra keys")
+        if not is_value(dictionary, "translate", str):
+            raise UnsupportedArgument("'translate' must be a string")
+        translate = dictionary["translate"]
+
+        with_content: Union[list[str], dict, None] = None
+        if "with" not in dictionary:
+            if len(dictionary) > 1:
+                raise MalformedArgument("Dictionary contains extra keys")
+            return Translate(translate)
+
+        with_value = dictionary["with"]
+        if list_of(with_value, str):
+            return Translate(translate, string_sequence = with_value)
+        elif isinstance(with_value, dict):
+            return Translate(translate, with_content = Rawtext.from_dictionary(with_value))
+        else:
+            raise UnsupportedArgument("'with' must be a list of strings or a dictionary")
+
+    @staticmethod
+    def build_dictionary(translate: str, with_content: Optional[Rawtext] = None, string_sequence: Optional[list[str]] = None) -> dict:
+        if not isinstance(translate, str):
+            raise UnsupportedArgument("'translate' must be a string")
+        if with_content is not None:
+            if not (isinstance(with_content, Rawtext)):
+                raise UnsupportedArgument("'with_content' must be a Rawtext")
+            return Translate._to_dictionary(translate, with_content = with_content)
+
+        elif string_sequence is not None:
+            if not list_of(string_sequence, str):
+                raise UnsupportedArgument("'string_sequence' must be list of strings")
+            return Translate._to_dictionary(translate, string_sequence = string_sequence)
+
+        else:
+            return Translate._to_dictionary(translate)
+
+    def to_dictionary(self) -> dict:
+        return self._to_dictionary(self.translate, self.with_content, self.string_sequence)
+
+    @staticmethod
+    def _to_dictionary(translate: str, with_content: Optional[Rawtext] = None, string_sequence: Optional[list[str]] = None) -> dict:
+        if with_content is not None:
+            return {
+                "translate": translate,
+                "with": with_content.to_dictionary()
+            }
+
+        if string_sequence is not None:
+            return {
+                "translate": translate,
+                "with": string_sequence
+            }
+
+        return {"translate": translate}
+
+    def __str__(self) -> str:
+        if self.is_rawtext_translate():
+            return f"{self.translate}\n  {pformat(self.with_content)}"
+        elif self.is_string_translate():
+            return f"{self.translate}\n  {pformat(self.string_sequence)}"
+        return self.translate
+
+    def __repr__(self) -> str:
+        if self.is_rawtext_translate():
+            return f"-translate::{self.translate}\n  -with::{pformat(self.with_content)}"
+        elif self.is_string_translate():
+            return f"-translate::{self.translate}\n  -with::{pformat(self.string_sequence)}"
+        return f"-translate::{self.translate}"
+
+
+def _array_processing(dictionary: dict) -> dict:
+    results = None
+    for sentence in dictionary.keys():
+        if (p := priority.get(sentence, -1)) == -1:
+            raise ValueError("priority dictionary error")
+        if p >= priority[results]:
+            results = sentence
+    return {results: dictionary[results]} if results is not None else {}
+
+def rawtext_lexer(sequence: list[dict]) -> list[TextComponent]:
+    if not list_of(sequence, dict):
+        raise UnsupportedArgument("dictionary error")
+
+    results: list[TextComponent] = []
+    for sentence in sequence:
+        if len(sentence) > 1 and not ("translate" in sentence and "with" in sentence):
+            sentence = _array_processing(sentence)
+
+        if sentence == {}:
+            continue
+        elif "text" in sentence:
+            results.append(Text.from_dictionary(sentence))
+        elif "score" in sentence:
+            results.append(Score.from_dictionary(sentence))
+        elif "selector" in sentence:
+            results.append(Selector.from_dictionary(sentence))
+        elif "translate" in sentence:
+            results.append(Translate.from_dictionary(sentence))
+        elif "rawtext" in sentence:
+            results.append(Rawtext.from_dictionary(sentence))
+        else:
+            raise MalformedArgument("dictionary error")
+    return results
