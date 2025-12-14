@@ -14,6 +14,7 @@ priority = {
     "selector": 1,
     None: 0
 }
+segmentation = ">[]"
 
 class TextComponent(ABC):
     """所有文本组件的基类"""
@@ -50,12 +51,15 @@ class TextComponent(ABC):
 
 class Rawtext(TextComponent):
     """实现Minecraft BE中rawtext文本组件的模式, 本质上是个容器"""
+    builder_installed = False
+
     def __init__(self, sequence: Optional[list[TextComponent]] = None) -> None:
         """实现由TextComponent列表到Rawtext的转换"""
         sequence = sequence if sequence is not None else []
         if not list_of(sequence, TextComponent):
             raise UnsupportedArgument("Sequence must be None or a list of TextComponents")
         self._data = sequence
+
 
     @classmethod
     def from_dictionary(cls, dictionary: dict) -> "Rawtext":
@@ -81,15 +85,52 @@ class Rawtext(TextComponent):
             self._data.append(obj)
         return self
 
+    def adx(self, *args) -> "Rawtext":
+        for sentence in args:
+            if isinstance(sentence, TextComponent):
+                self.add(sentence)
+                continue
+            if not isinstance(sentence, str):
+                raise UnsupportedArgument("The parameters must be a subclass of TextComponent or string")
+
+            elif (p := sentence.find(segmentation)) != -1:
+                self.add(Score(sentence[:p], sentence[p+len(segmentation):]))
+                continue
+
+            elif len(sentence) >= 2 and sentence[0] == "@" and sentence[1] in ["p", "r", "a", "e", "s", "n"]:
+                if len(sentence) == 2:
+                    self.add(Selector(sentence))
+                    continue
+                no_whitespace = sentence.replace(" ", "")
+                if no_whitespace[-1] == "]" and no_whitespace[2] == "[":
+                    self.add(Selector(sentence))
+                    continue
+            elif len(sentence) >= 10 and sentence[:10] == "@initiator":
+                if len(sentence) == 10:
+                    self.add(Selector(sentence))
+                    continue
+                no_whitespace = sentence.replace(" ", "")
+                if no_whitespace[-1] == "]" and no_whitespace[10] == "[":
+                    self.add(Selector(sentence))
+                    continue
+
+            self.add(Text(sentence))
+        return self
+
+
     def add_sequence(self, sequence: list[TextComponent]) -> "Rawtext":
         return self.add(*sequence)
 
     def get_data(self) -> list[TextComponent]:
         return self._data.copy()
 
-    def translate(self, translate: str) -> 'TranslateBuilder':
+    def translate(self, translate: str) -> "TranslateBuilder":
         if not isinstance(translate, str):
             raise UnsupportedArgument("build failed")
+
+        if not Rawtext.builder_installed:
+            from .builder import TranslateBuilder
+            Rawtext.builder_installed = True
 
         return TranslateBuilder(self, translate)
 
@@ -179,6 +220,48 @@ class Score(TextComponent):
             }
         }
 
+    @classmethod
+    def p(cls, objective: str) -> "Score":
+        if not isinstance(objective, str):
+            raise UnsupportedArgument("Objective must be a string")
+        return cls("@p", objective)
+
+    @classmethod
+    def r(cls, objective: str) -> "Score":
+        if not isinstance(objective, str):
+            raise UnsupportedArgument("Objective must be a string")
+        return cls("@r", objective)
+
+    @classmethod
+    def a(cls, objective: str) -> "Score":
+        if not isinstance(objective, str):
+            raise UnsupportedArgument("Objective must be a string")
+        return cls("@a", objective)
+
+    @classmethod
+    def e(cls, objective: str) -> "Score":
+        if not isinstance(objective, str):
+            raise UnsupportedArgument("Objective must be a string")
+        return cls("@e", objective)
+
+    @classmethod
+    def s(cls, objective: str) -> "Score":
+        if not isinstance(objective, str):
+            raise UnsupportedArgument("Objective must be a string")
+        return cls("@s", objective)
+
+    @classmethod
+    def n(cls, objective: str) -> "Score":
+        if not isinstance(objective, str):
+            raise UnsupportedArgument("Objective must be a string")
+        return cls("@n", objective)
+
+    @classmethod
+    def initiator(cls, objective: str) -> "Score":
+        if not isinstance(objective, str):
+            raise UnsupportedArgument("Objective must be a string")
+        return cls("@initiator", objective)
+
     def __str__(self) -> str:
         return f"{self.name} >> {self.objective}"
 
@@ -245,7 +328,7 @@ class Translate(TextComponent):
                 raise UnsupportedArgument("'string_sequence' must be list of strings")
             self.string_sequence = string_sequence
 
-    def is_prime_translate(self) -> bool:
+    def is_pure_translate(self) -> bool:
         return self.with_content is None and self.string_sequence is None
 
     def is_rawtext_translate(self) -> bool:
@@ -268,11 +351,12 @@ class Translate(TextComponent):
                 raise MalformedArgument("Dictionary contains extra keys")
             return Translate(translate)
 
+        # breakpoint()
         with_value = dictionary["with"]
-        if list_of(with_value, str):
-            return Translate(translate, string_sequence = with_value)
-        elif isinstance(with_value, dict):
+        if isinstance(with_value, dict):
             return Translate(translate, with_content = Rawtext.from_dictionary(with_value))
+        elif list_of(with_value, str):
+            return Translate(translate, string_sequence = with_value)
         else:
             raise UnsupportedArgument("'with' must be a list of strings or a dictionary")
 

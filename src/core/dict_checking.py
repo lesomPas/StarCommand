@@ -41,6 +41,7 @@ def matching(dictionary: dict, pattern: dict) -> None:
                 stack.append((data_value, pat_value))
                 continue
 
+            # print(pat_value, "\n", data_value, "\n", key, "\n", stack)
             _type_checking(pat_value, data_value, key, stack=stack)
 
         if len(data) != len(pat):
@@ -49,25 +50,36 @@ def matching(dictionary: dict, pattern: dict) -> None:
 
 
 def _type_checking(pat_value, data_value, key, stack) -> None:
+    #breakpoint()
     # 字符串匹配模式
-    if pat_value is str and not isinstance(data_value, str):
-        raise UnsupportedArgument(f"Parameter '{key}' must be a string")
+    if pat_value is str:
+        if not isinstance(data_value, str):
+            raise UnsupportedArgument(f"Parameter '{key}' must be a string")
+        return
 
     # 数字匹配模式
-    elif pat_value == "number" and not isinstance(data_value, (int, float)):
-        raise UnsupportedArgument(f"Parameter '{key}' must be a number (int or float)")
+    elif pat_value == "number":
+        if not isinstance(data_value, (int, float)):
+            raise UnsupportedArgument(f"Parameter '{key}' must be a number (int or float)")
+        return
 
     # 整数匹配模式
-    elif pat_value is int and not isinstance(data_value, int):
-        raise UnsupportedArgument(f"Parameter '{key}' must be an integer")
+    elif pat_value is int:
+        if not isinstance(data_value, int):
+            raise UnsupportedArgument(f"Parameter '{key}' must be an integer")
+        return
 
     # 浮点数匹配模式
-    elif pat_value is float and not isinstance(data_value, float):
-        raise UnsupportedArgument(f"Parameter '{key}' must be a float")
+    elif pat_value is float:
+        if not isinstance(data_value, float):
+            raise UnsupportedArgument(f"Parameter '{key}' must be a float")
+        return
 
     # 自定义匹配模式
-    elif callable(pat_value) and not pat_value(data_value, key):
-        raise MalformedArgument(f"Callable Return Invalid Value Signal local(data_value::{data_value}, key::{key})")
+    elif callable(pat_value):
+        if not pat_value(data_value, key):
+            raise MalformedArgument(f"Callable Return Invalid Value Signal local(data_value::{data_value}, key::{key})")
+        return
 
     # 定长数组匹配模式
     elif isinstance(pat_value, list):
@@ -107,9 +119,10 @@ def _type_checking(pat_value, data_value, key, stack) -> None:
             raise UnsupportedArgument(f"All items in list '{key}' must be of type {expected_type}")
 
     # 保底类型匹配模式
-    elif isinstance(pat_value, type) and not isinstance(data_value, pat_value):
-        raise UnsupportedArgument(f"Parameter '{key}' must be of type {pat_value.__name__}")
-
+    elif isinstance(pat_value, type):
+        if not isinstance(data_value, pat_value):
+            raise UnsupportedArgument(f"Parameter '{key}' must be of type {pat_value.__name__}")
+        return
     # 错误情况
     else:
         raise MissingArgument(f"Invalid pattern for parameter '{key}'")

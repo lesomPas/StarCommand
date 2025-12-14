@@ -20,6 +20,13 @@ class TranslateBuilder(object):
         withraw = Rawtext().add_sequence(list(args))
         return self.raw.add(Translate(self.translate, with_content = withraw))
 
+    def build_adx(self, *args) -> Rawtext:
+        if args == ():
+            return self.raw.add(Translate(self.translate))
+
+        withraw = Rawtext().adx(*args)
+        return self.raw.add(Translate(self.translate, with_content = withraw))
+
     def string_build(self, *args) -> Rawtext:
         if args == ():
             return self.raw.add(Translate(self.translate))

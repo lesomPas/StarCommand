@@ -1,0 +1,170 @@
+{
+    "rawtext": [
+        {
+            "text": "§l§e［§4狂§e］§r§e总战力:"
+        },
+        {
+            "score": {
+                "name": "@s",
+                "objective": "总战力"
+            }
+        },
+        {
+            "text": "    道龄§r§e["
+        },
+        {
+            "score": {
+                "name": "@s",
+                "objective": "时"
+            }
+        },
+        {
+            "text": ":"
+        },
+        {
+            "score": {
+                "name": "@s",
+                "objective": "分"
+            }
+        },
+        {
+            "text": ":"
+        },
+        {
+            "score": {
+                "name": "@s",
+                "objective": "秒"
+            }
+        },
+        {
+            "translate": "%4",
+            "with": {
+                "rawtext": [
+                    {
+                        "selector": "@s[scores={境界=!2,境界层数=!10}]"
+                    },
+                    {
+                        "selector": "@s[scores={境界=!2,境界层数=10}]"
+                    },
+                    {
+                        "selector": "@s[scores={境界=2,境界层数=!12}]"
+                    },
+                    {
+                        "selector": "@s[scores={境界=2,境界层数=12}]"
+                    },
+                    {
+                        "text": "§e未到瓶颈 还可提升"
+                    },
+                    {
+                        "text": "§l到达瓶颈 请先渡劫"
+                    },
+                    {
+                        "text": "§r§e未到瓶颈 还可提升"
+                    },
+                    {
+                        "text": "§e§l到达瓶颈 请先渡劫"
+                    }
+                ]
+            }
+        },
+        {
+            "text": "］\n§l§e［§4癫§e］  §r§a血量§b:§a"
+        },
+        {
+            "score": {
+                "name": "@s",
+                "objective": "血量"
+            }
+        },
+        {
+            "text": "§b‖§a"
+        },
+        {
+            "score": {
+                "name": "@s",
+                "objective": "满血量"
+            }
+        },
+        {
+            "text": "  §e练气§6"
+        },
+        {
+            "score": {
+                "name": "@s",
+                "objective": "境界层数"
+            }
+        },
+        {
+            "text": "§e层§a§l[§r§a"
+        },
+        {
+            "score": {
+                "name": "@s",
+                "objective": "感悟进度"
+            }
+        },
+        {
+            "text": "§b‖§a"
+        },
+        {
+            "score": {
+                "name": "@s",
+                "objective": "感悟进度满"
+            }
+        },
+        {
+            "text": "§a§l]§r§a"
+        },
+        {
+            "score": {
+                "name": "@s",
+                "objective": "感悟进度百分比"
+            }
+        },
+        {
+            "text": "%  §a护甲值§b:§a"
+        },
+        {
+            "score": {
+                "name": "@s",
+                "objective": "防御"
+            }
+        },
+        {
+            "text": "   \n§l§e［§4逆§e］  §r§c攻击力§a:"
+        },
+        {
+            "score": {
+                "name": "@s",
+                "objective": "攻击"
+            }
+        },
+        {
+            "text": "  §c暴击§b:§a"
+        },
+        {
+            "score": {
+                "name": "@s",
+                "objective": "暴击"
+            }
+        },
+        {
+            "text": "§b%   §c爆伤§b:§a"
+        },
+        {
+            "score": {
+                "name": "@s",
+                "objective": "暴伤"
+            }
+        },
+        {
+            "text": "  §a闪避§b:§a"
+        },
+        {
+            "score": {
+                "name": "@s",
+                "objective": "闪避"
+            }
+        }
+    ]
+}
